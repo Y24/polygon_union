@@ -142,13 +142,12 @@ bool PointCmp(const Point &a, const Point &b, const Point &center)
         return true;
     if (det > 0)
         return false;
-    // 否则 det==0, 向量OA和向量OB共线，以距离判断大小
-    //
-    // 此处有BUG，然而不想改，故给重心一个偏移微量，使得det在大多数情况下不等于0，
-    // 因而输入坐标差值应远比偏移微量（0.01）大，否则会出现啥，不可知
-    double d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
-    double d2 = (b.x - center.x) * (b.x - center.y) + (b.y - center.y) * (b.y - center.y);
-    return d1 > d2;
+    // 否则 det==0, 向量OA和向量OB共线
+    if (a == center)
+        return false;
+    if (b == center)
+        return true;
+    return a.x > b.x || a.y > b.y;
 }
 void ClockwiseSortPoints(std::vector<Point> &vPoints)
 {
@@ -161,9 +160,6 @@ void ClockwiseSortPoints(std::vector<Point> &vPoints)
     });
     center.x = x / vPoints.size();
     center.y = y / vPoints.size();
-    //偏移微量
-    center.x += 0.001;
-    center.y += 0.001;
     //直接排序不可行，故注释掉，留于此，以显示lamba表达式的高级用法
     /* sort(vPoints.begin(), vPoints.end(), [&](const Point &a, const Point &b) {
         return PointCmp(a, b, center);
@@ -201,6 +197,11 @@ bool PolygonUnion(const vector<Point> &poly1,
         }
     }
     bool hasNoCrossPoint = interPoly.empty();
+     sort(interPoly.begin(), interPoly.end(), [](const Point &p1, const Point &p2) {
+        return p1.x > p2.x || p1.y > p2.y;
+    });
+    interPoly.erase(unique(interPoly.begin(), interPoly.end()), interPoly.end());
+
     //计算多边形外部点
     for (int i = 0; i < poly1.size(); i++)
     {
@@ -216,6 +217,7 @@ bool PolygonUnion(const vector<Point> &poly1,
             interPoly.push_back(poly2[i]);
         }
     }
+
     if (hasNoCrossPoint) //多边形不相交
     {
         if (interPoly.size() == poly1.size() + poly2.size()) //两多边形无交点且不相互包含
@@ -238,17 +240,12 @@ bool PolygonUnion(const vector<Point> &poly1,
         }
         return true;
     }
-    //去重
-    sort(interPoly.begin(), interPoly.end(), [](const Point &p1, const Point &p2) {
-        return p1.x > p2.x || p1.y > p2.y;
-    });
-    interPoly.erase(unique(interPoly.begin(), interPoly.end()), interPoly.end());
-
     if (interPoly.size() <= 0)
         return false;
-
     //点集逻辑排序
     ClockwiseSortPoints(interPoly);
+    //去重
+    interPoly.erase(unique(interPoly.begin(), interPoly.end()), interPoly.end());
     return true;
 }
 int main(int argc, char const *argv[])
