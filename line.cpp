@@ -33,7 +33,7 @@ bool IsLineSegmentCross(const Point &pFirst1, const Point &pFirst2, const Point 
     line2 = pFirst1.x * (pSecond2.y - pFirst2.y) +
             pFirst2.x * (pFirst1.y - pSecond2.y) +
             pSecond2.x * (pFirst2.y - pFirst1.y);
-    if (((line1 ^ line2) >= 0) && !(line1 == 0 && line2 == 0))
+     if (((line1 ^ line2) >= 0) && !(line1 == 0 && line2 == 0))
         return false;
 
     line1 = pSecond1.x * (pFirst1.y - pSecond2.y) +
@@ -122,7 +122,7 @@ void ClockwiseSortPoints(std::vector<Point> &vPoints)
     /* sort(vPoints.begin(), vPoints.end(), [&](const Point &a, const Point &b) {
         return PointCmp(a, b, center);
     }); */
-    cout<<"center: "<<center.x<<" "<<center.y<<endl;
+    cout << "center: " << center.x << " " << center.y << endl;
     //冒泡排序
     for (int i = 0; i < vPoints.size() - 1; i++)
     {

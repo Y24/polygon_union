@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <algorithm>
 #include <numeric>
@@ -14,7 +15,22 @@ struct Point
     };
     double x;
     double y;
+
+    bool operator==(const Point &p) const
+    {
+        return x == p.x && y == p.y;
+    }
 };
+istream &operator>>(istream &in, Point &p)
+{
+    in >> p.x >> p.y;
+    return in;
+}
+ostream &operator<<(ostream &out, const Point &p)
+{
+    out << p.x << " " << p.y << endl;
+    return out;
+}
 //排斥实验
 bool IsRectCross(const Point &p1, const Point &p2, const Point &q1, const Point &q2)
 {
@@ -34,7 +50,7 @@ bool IsLineSegmentCross(const Point &pFirst1, const Point &pFirst2, const Point 
     line2 = pFirst1.x * (pSecond2.y - pFirst2.y) +
             pFirst2.x * (pFirst1.y - pSecond2.y) +
             pSecond2.x * (pFirst2.y - pFirst1.y);
-    if (((pow(line1, line2)) >= 0) && !(line1 == 0 && line2 == 0))
+    if (line1 == line2 && line1 != 0 || line1 != line2 && (line1 != 0 || line2 != 0) && line1 * line2 >= 0)
         return false;
 
     line1 = pSecond1.x * (pFirst1.y - pSecond2.y) +
@@ -43,7 +59,7 @@ bool IsLineSegmentCross(const Point &pFirst1, const Point &pFirst2, const Point 
     line2 = pSecond1.x * (pFirst2.y - pSecond2.y) +
             pSecond2.x * (pSecond1.y - pFirst2.y) +
             pFirst2.x * (pSecond2.y - pSecond1.y);
-    if (((pow(line1, line2)) >= 0) && !(line1 == 0 && line2 == 0))
+    if (line1 == line2 && line1 != 0 || line1 != line2 && (line1 != 0 || line2 != 0) && line1 * line2 >= 0)
         return false;
     return true;
 }
@@ -52,6 +68,30 @@ bool GetCrossPoint(const Point &p1, const Point &p2,
                    const Point &q1, const Point &q2,
                    double &x, double &y)
 {
+    if (p1 == q1)
+    {
+        x = p1.x;
+        y = p1.y;
+        return true;
+    }
+    if (p1 == q2)
+    {
+        x = p1.x;
+        y = p1.y;
+        return true;
+    }
+    if (p2 == q1)
+    {
+        x = p2.x;
+        y = p2.y;
+        return true;
+    }
+    if (p2 == q2)
+    {
+        x = p2.x;
+        y = p2.y;
+        return true;
+    }
     if (IsRectCross(p1, p2, q1, q2))
     {
         if (IsLineSegmentCross(p1, p2, q1, q2))
@@ -60,18 +100,20 @@ bool GetCrossPoint(const Point &p1, const Point &p2,
             double tmpLeft, tmpRight;
             tmpLeft = (q2.x - q1.x) * (p1.y - p2.y) - (p2.x - p1.x) * (q1.y - q2.y);
             tmpRight = (p1.y - q1.y) * (p2.x - p1.x) * (q2.x - q1.x) + q1.x * (q2.y - q1.y) * (p2.x - p1.x) - p1.x * (p2.y - p1.y) * (q2.x - q1.x);
-
+            if (tmpLeft == 0)
+                return false;
             x = tmpRight / tmpLeft;
-
             tmpLeft = (p1.x - p2.x) * (q2.y - q1.y) - (p2.y - p1.y) * (q1.x - q2.x);
             tmpRight = p2.y * (p1.x - p2.x) * (q2.y - q1.y) + (q2.x - p2.x) * (q2.y - q1.y) * (p1.y - p2.y) - q2.y * (q1.x - q2.x) * (p2.y - p1.y);
+            if (tmpLeft == 0)
+                return false;
             y = tmpRight / tmpLeft;
             return true;
         }
     }
     return false;
 }
-//  The function will return true if the point (x,y) is inside the polygon, or
+//  The function will return true if the Point (x,y) is inside the polygon, or
 //  false if it is not.
 //  Note:
 //  If the point is exactly on the edge of the polygon,
@@ -91,20 +133,19 @@ bool IsPointInPolygon(std::vector<Point> poly, Point pt)
     }
     return c;
 }
-//若点a大于点b,即点a相对点center在点b顺时针方向,返回true,否则返回false
+//若点a大于点b,即点a相对点center在点b逆时针方向,返回true,否则返回false
 bool PointCmp(const Point &a, const Point &b, const Point &center)
 {
-    if (a.x >= 0 && b.x < 0)
-        return true;
-    if (a.x == 0 && b.x == 0)
-        return a.y > b.y;
     //向量OA和向量OB的叉积
     double det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y);
     if (det < 0)
         return true;
     if (det > 0)
         return false;
-    //向量OA和向量OB共线，以距离判断大小
+    // 否则 det==0, 向量OA和向量OB共线，以距离判断大小
+    //
+    // 此处有BUG，然而不想改，故给重心一个偏移微量，使得det在大多数情况下不等于0，
+    // 因而输入坐标差值应远比偏移微量（0.01）大，否则会出现啥，不可知
     double d1 = (a.x - center.x) * (a.x - center.x) + (a.y - center.y) * (a.y - center.y);
     double d2 = (b.x - center.x) * (b.x - center.y) + (b.y - center.y) * (b.y - center.y);
     return d1 > d2;
@@ -120,23 +161,19 @@ void ClockwiseSortPoints(std::vector<Point> &vPoints)
     });
     center.x = x / vPoints.size();
     center.y = y / vPoints.size();
+    //偏移微量
+    center.x += 0.001;
+    center.y += 0.001;
+    //直接排序不可行，故注释掉，留于此，以显示lamba表达式的高级用法
     /* sort(vPoints.begin(), vPoints.end(), [&](const Point &a, const Point &b) {
         return PointCmp(a, b, center);
     }); */
     cout << "center: " << center.x << " " << center.y << endl;
     //冒泡排序
     for (int i = 0; i < vPoints.size() - 1; i++)
-    {
         for (int j = 0; j < vPoints.size() - i - 1; j++)
-        {
             if (PointCmp(vPoints[j], vPoints[j + 1], center))
-            {
-                Point tmp = vPoints[j];
-                vPoints[j] = vPoints[j + 1];
-                vPoints[j + 1] = tmp;
-            }
-        }
-    }
+                swap(vPoints[j], vPoints[j + 1]);
 }
 bool PolygonUnion(const vector<Point> &poly1,
                   const vector<Point> &poly2,
@@ -163,7 +200,7 @@ bool PolygonUnion(const vector<Point> &poly1,
             }
         }
     }
-
+    bool hasNoCrossPoint = interPoly.empty();
     //计算多边形外部点
     for (int i = 0; i < poly1.size(); i++)
     {
@@ -179,6 +216,33 @@ bool PolygonUnion(const vector<Point> &poly1,
             interPoly.push_back(poly2[i]);
         }
     }
+    if (hasNoCrossPoint) //多边形不相交
+    {
+        if (interPoly.size() == poly1.size() + poly2.size()) //两多边形无交点且不相互包含
+        {
+            interPoly.clear();
+            interPoly.insert(interPoly.end(), poly1.begin(), poly1.end());
+            interPoly.insert(interPoly.end(), poly2.begin(), poly2.end());
+        }
+        if (interPoly.size() == poly1.size() &&
+            find(poly1.begin(), poly1.end(), interPoly[0]) != poly1.end()) //多边形1包含多边形2
+        {
+            interPoly.clear();
+            interPoly.insert(interPoly.end(), poly1.begin(), poly1.end());
+        }
+        if (interPoly.size() == poly2.size() &&
+            find(poly2.begin(), poly2.end(), interPoly[0]) != poly2.end()) //多边形2包含多边形1
+        {
+            interPoly.clear();
+            interPoly.insert(interPoly.end(), poly2.begin(), poly2.end());
+        }
+        return true;
+    }
+    //去重
+    sort(interPoly.begin(), interPoly.end(), [](const Point &p1, const Point &p2) {
+        return p1.x > p2.x || p1.y > p2.y;
+    });
+    interPoly.erase(unique(interPoly.begin(), interPoly.end()), interPoly.end());
 
     if (interPoly.size() <= 0)
         return false;
@@ -189,33 +253,57 @@ bool PolygonUnion(const vector<Point> &poly1,
 }
 int main(int argc, char const *argv[])
 {
-    /* fstream in;
-    if(argc>1){
-
-    } */
     vector<Point> polygonA, polygonB, targetPoly;
     int n;
     double x, y;
-    cout << "请输入两个多边形，格式： \n多边形1顶点数\n多边形1各顶点坐标\n多边形2顶点数\n多边形2各顶点坐标。\n";
-    cout << "示例：\n4\n1 1 1 3 3 3 3 1\n4\n2 2 2 4 4 4 4 2\n";
-    cout << "输入：\n";
-    cin >> n;
-    for (int i = 0; i < n; i++)
+    if (argc == 1) //default: no argument. read from `std::cin`.
     {
-        cin >> x >> y;
-        polygonA.push_back(Point(x, y));
+        cout << "请输入两个多边形，格式： \n多边形1顶点数\n多边形1各顶点坐标\n多边形2顶点数\n多边形2各顶点坐标。\n";
+        cout << "示例：\n4\n1 1 1 3 3 3 3 1\n4\n2 2 2 4 4 4 4 2\n";
+        cout << "输入：\n";
+        cin >> n;
+        for (int i = 0; i < n; i++)
+        {
+            cin >> x >> y;
+            polygonA.push_back(Point(x, y));
+        }
+        cin >> n;
+        for (int i = 0; i < n; i++)
+        {
+            cin >> x >> y;
+            polygonB.push_back(Point(x, y));
+        }
     }
-    cin >> n;
-    for (int i = 0; i < n; i++)
+    else
     {
-        cin >> x >> y;
-        polygonB.push_back(Point(x, y));
+        if (argv[1] == "-h")
+        {
+            cout << "1) Run without any arguments to read data from std::cin." << endl;
+            cout << "2) Run with argument `-h` to display this info." << endl;
+            cout << "3) otherwise, read data from a file named by the first argument." << endl;
+            cout << "Enjoy it." << endl;
+            return 0;
+        }
+        ifstream input(argv[1]);
+        input >> n;
+        for (int i = 0; i < n; i++)
+        {
+            input >> x >> y;
+            polygonA.push_back(Point(x, y));
+        }
+        input >> n;
+        for (int i = 0; i < n; i++)
+        {
+            input >> x >> y;
+            polygonB.push_back(Point(x, y));
+        }
     }
+
     if (PolygonUnion(polygonA, polygonB, targetPoly))
     {
         cout << "Successed!\n";
         for_each(targetPoly.begin(), targetPoly.end(), [](const Point &p) {
-            cout << p.x << " " << p.y << " \n";
+            cout << p;
         });
     }
     else
